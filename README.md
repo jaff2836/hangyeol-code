@@ -167,6 +167,27 @@ Hangyeol Code와 Narrow를 각각 마무리합니다. 하나만 만들려면 `--
 `.ttc`를 붙인 초안 릴리스를 만듭니다. `make package`는 `fonts/ttf`의 TTF로 웹폰트(`make
 webfonts`)를 다시 만든 뒤 압축합니다.
 
+### Windows ClearType 렌더링
+
+`tools/render-windows`는 Windows에서 DirectWrite로 폰트를 렌더링하는 .NET 8 도구입니다. 폰트를
+설치하지 않고 파일에서 바로 읽고, 렌더링 설정을 코드에서 정하므로 서비스로 도는 CI 에이전트에서도
+사용자 ClearType 설정과 상관없이 같은 결과가 나옵니다.
+
+```bash
+dotnet run --project tools/render-windows -c Release -- --fonts fonts/ttf --out renders
+```
+
+- 두 글꼴을 ClearType(natural symmetric), 그레이스케일, GDI classic으로 11·14·18px씩 그려
+  5배 확대한 PNG와 실제 크기 PNG(`-1x`)를 `renders/`에 남깁니다. 합자는 DirectWrite가 적용합니다.
+- 한글을 grid fitting을 켜고 끈 두 상태로 그려 잉크 중심의 차이를 재고, `data/hints*.json`의 크기별
+  이동값과 비교해 `renders/hint-check.tsv`에 적습니다. `--strict`를 주면 0.04px 넘게 어긋날 때
+  실패합니다.
+- `renders/info.json`에 Windows·DirectWrite 버전과 렌더링 설정을 적습니다. DirectWrite는 Windows
+  빌드마다 결과가 조금씩 다르므로 이미지를 비교할 때 함께 봅니다.
+- `.buildkite/pipeline.yml`은 Linux 에이전트에서 폰트를 빌드하고 Windows 에이전트에서 이 도구를
+  돌리는 예시입니다. 에이전트 큐 이름은 환경에 맞게 바꾸고, Windows 에이전트에는 .NET 8 SDK
+  이상을 설치합니다.
+
 ### 프로젝트 구조
 
 | 경로 | 내용 |
@@ -180,6 +201,8 @@ webfonts`)를 다시 만든 뒤 압축합니다.
 | `tests/` | 합치기·CLI·Narrow 테스트 |
 | `.github/workflows/` | 검사(CI)와 릴리스 |
 | `assets/` | README 이미지 |
+| `tools/render-windows/` | Windows DirectWrite 렌더링과 한글 힌팅 검사 (.NET 8) |
+| `.buildkite/` | Windows 렌더링 파이프라인 예시 |
 
 ## 만드는 방법
 

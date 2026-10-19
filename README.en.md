@@ -175,6 +175,28 @@ download the sources, run the tests, build both families and create a draft rele
 archives (two of TTF and TTC, one of web fonts) and the `.ttc` files attached. `make package`
 rebuilds the web fonts from the TTFs in `fonts/ttf` (`make webfonts`) before archiving.
 
+### Windows ClearType rendering
+
+`tools/render-windows` is a .NET 8 tool that renders the fonts with DirectWrite on Windows. It
+loads the font files without installing them and sets the rendering parameters in code, so a CI
+agent running as a service gets the same result regardless of the user's ClearType settings.
+
+```bash
+dotnet run --project tools/render-windows -c Release -- --fonts fonts/ttf --out renders
+```
+
+- Both families are drawn in ClearType (natural symmetric), grayscale and GDI classic at 11, 14
+  and 18 px, as PNGs enlarged five times and at actual size (`-1x`) in `renders/`. DirectWrite
+  applies the ligatures.
+- Hangul is drawn with grid fitting on and off; the difference of the ink centroids is compared
+  with the per-size shifts in `data/hints*.json` and written to `renders/hint-check.tsv`. With
+  `--strict` the tool fails when a size is off by more than 0.04 px.
+- `renders/info.json` records the Windows and DirectWrite versions and the rendering parameters.
+  DirectWrite output changes slightly between Windows builds, so keep it next to the images.
+- `.buildkite/pipeline.yml` is an example that builds the fonts on a Linux agent and runs the tool
+  on a Windows agent. Set the agent queues to your own and install the .NET 8 SDK or later on the
+  Windows agent.
+
 ### Project layout
 
 | Path | Contents |
@@ -188,6 +210,8 @@ rebuilds the web fonts from the TTFs in `fonts/ttf` (`make webfonts`) before arc
 | `tests/` | Merge, CLI and Narrow tests |
 | `.github/workflows/` | CI and releases |
 | `assets/` | README images |
+| `tools/render-windows/` | Windows DirectWrite rendering and Hangul hint check (.NET 8) |
+| `.buildkite/` | Example pipeline for the Windows renders |
 
 ## How it is made
 
