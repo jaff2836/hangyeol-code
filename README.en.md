@@ -104,6 +104,20 @@ For Narrow, use `Hangyeol Code Narrow` instead of `Hangyeol Code`.
 - Windows Terminal and the VS Code terminal draw box drawing, blocks and Powerline symbols
   themselves instead of using the font (default settings).
 
+**Web** — `HangyeolCode-webfont-<version>.zip` holds the 32 WOFF2 files of both families and two
+CSS files (`hangyeolcode.css`, `hangyeolcodenarrow.css`). Put the files in one folder and link
+the CSS.
+
+```html
+<link rel="stylesheet" href="hangyeolcode.css">
+<style>
+  code, pre { font-family: 'Hangyeol Code', monospace; }
+</style>
+```
+
+Each WOFF2 is about 1.7 MB. Upload only the weights you use and drop the other `@font-face`
+rules from the CSS to keep it light. Browsers download only the weights a page actually uses.
+
 ## Building
 
 Requires [uv](https://docs.astral.sh/uv/) and `make`; uv fetches Python 3.12. The source fonts
@@ -114,7 +128,7 @@ uv sync --all-groups
 make download   # JetBrainsMono Nerd Font 3.5.1, Pretendard 1.3.9, Noto Sans KR 2.004
 make run        # Hangyeol Code and Narrow: fonts/ttf/*.ttf, fonts/*.ttc
 make test
-make package    # release archives: dist/HangyeolCode-<version>.zip, dist/HangyeolCodeNarrow-<version>.zip
+make package    # release archives: dist/HangyeolCode-<version>.zip, -Narrow-, -webfont-
 ```
 
 One build makes both families: each style is merged once and then finished as Hangyeol Code and
@@ -155,8 +169,9 @@ PEP 440, but the fonts record `Version 1.001`.
 ### Releases
 
 Pushing a tag named after the version in `pyproject.toml` (e.g. `v1.001`) makes GitHub Actions
-download the sources, run the tests, build both families and create a draft release with the
-archives and `.ttc` files attached.
+download the sources, run the tests, build both families and create a draft release with three
+archives (two of TTF and TTC, one of web fonts) and the `.ttc` files attached. `make package`
+rebuilds the web fonts from the TTFs in `fonts/ttf` (`make webfonts`) before archiving.
 
 ### Project layout
 
@@ -240,6 +255,7 @@ archives and `.ttc` files attached.
     changed `⅓ ⅛ ⅜ ⅝ ⅞` from Pretendard's design to the shape of `½`.
   - Half-width Hangul (U+FFA1–FFDC) went from two cells to one, and `⚡` (U+26A1) and `﹢`
     (U+FE62) from one cell to two.
+  - Added a web font archive with WOFF2 files and CSS (`HangyeolCode-webfont-<version>.zip`).
   - Named weights other than Regular and Bold following the Windows rules, so apps such as
     Office can select every weight.
   - Changed manufacturer, designer, URLs and vendor ID from JetBrains to this project and put

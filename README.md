@@ -97,6 +97,20 @@ Narrow를 쓰려면 `Hangyeol Code` 자리에 `Hangyeol Code Narrow`를 넣습�
 - Windows Terminal과 VS Code 터미널은 박스 문자·블록·Powerline 기호를 폰트 대신 직접
   그립니다(기본 설정).
 
+**웹** — `HangyeolCode-webfont-<버전>.zip`에는 두 글꼴의 WOFF2 32개와 CSS 두 개
+(`hangyeolcode.css`, `hangyeolcodenarrow.css`)가 들어 있습니다. 파일을 같은 폴더에 올리고
+CSS를 연결합니다.
+
+```html
+<link rel="stylesheet" href="hangyeolcode.css">
+<style>
+  code, pre { font-family: 'Hangyeol Code', monospace; }
+</style>
+```
+
+WOFF2 하나가 약 1.7MB입니다. 쓰는 굵기만 올리고, CSS에서 나머지 `@font-face`를 지우면
+가벼워집니다. 브라우저는 `@font-face`에 적힌 파일 중 페이지에서 쓰는 굵기만 내려받습니다.
+
 ## 빌드
 
 [uv](https://docs.astral.sh/uv/)와 `make`가 필요합니다. Python 3.12는 uv가 받아 옵니다.
@@ -107,7 +121,7 @@ uv sync --all-groups
 make download   # JetBrainsMono Nerd Font 3.5.1, Pretendard 1.3.9, Noto Sans KR 2.004
 make run        # Hangyeol Code와 Narrow: fonts/ttf/*.ttf, fonts/*.ttc
 make test
-make package    # 배포용 압축 파일: dist/HangyeolCode-<버전>.zip, dist/HangyeolCodeNarrow-<버전>.zip
+make package    # 배포용 압축 파일: dist/HangyeolCode-<버전>.zip, -Narrow-, -webfont-
 ```
 
 한 번의 빌드로 두 글꼴을 함께 만듭니다. 변형마다 영문과 한글을 한 번 합친 뒤, 거기서
@@ -147,7 +161,9 @@ Hangyeol Code와 Narrow를 각각 마무리합니다. 하나만 만들려면 `--
 ### 릴리스
 
 `pyproject.toml`의 버전과 같은 이름의 태그(예: `v1.001`)를 푸시하면 GitHub Actions가 원본을
-내려받아 테스트하고, 두 글꼴을 빌드해 압축 파일과 `.ttc`를 붙인 초안 릴리스를 만듭니다.
+내려받아 테스트하고, 두 글꼴을 빌드해 압축 파일 세 개(TTF·TTC 두 개, 웹폰트 하나)와
+`.ttc`를 붙인 초안 릴리스를 만듭니다. `make package`는 `fonts/ttf`의 TTF로 웹폰트(`make
+webfonts`)를 다시 만든 뒤 압축합니다.
 
 ### 프로젝트 구조
 
@@ -229,6 +245,7 @@ Hangyeol Code와 Narrow를 각각 마무리합니다. 하나만 만들려면 `--
     새로 만들었으며, `⅓ ⅛ ⅜ ⅝ ⅞`는 Pretendard 모양에서 `½`와 같은 모양으로 바꿨습니다.
   - 반각 한글(U+FFA1–FFDC)을 두 칸에서 한 칸으로, `⚡`(U+26A1)와 `﹢`(U+FE62)를 한 칸에서
     두 칸으로 바꿨습니다.
+  - 웹용 WOFF2와 CSS 묶음(`HangyeolCode-webfont-<버전>.zip`)을 함께 배포합니다.
   - Regular·Bold 외 굵기의 이름을 Windows 규칙에 맞췄습니다. Office 같은 앱에서 모든
     굵기를 고를 수 있습니다.
   - 제작사·디자이너·URL·vendor ID를 JetBrains에서 이 프로젝트 것으로 바꾸고, 저작권

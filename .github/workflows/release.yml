@@ -1,7 +1,7 @@
 name: Release
 
 # Push a tag named after the package version (e.g. v1.001) to build both families
-# and attach them to a draft release.
+# and attach their archives, the web font archive and the .ttc files to a draft release.
 on:
   push:
     tags: ["v*"]

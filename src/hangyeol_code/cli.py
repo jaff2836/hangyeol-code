@@ -7,6 +7,7 @@ import io
 import json
 import logging
 import sys
+from concurrent.futures import ProcessPoolExecutor
 from importlib import metadata
 from pathlib import Path
 
@@ -101,6 +102,38 @@ def write_css(output_web_dir: Path, family_name: str, variants: list[FontVariant
     css_path.write_text("\n".join(css_content), encoding="utf-8")
     logger.info("Wrote web font CSS to %s", css_path)
     return css_path
+
+
+def to_woff2(ttf_path: Path, web_dir: Path) -> Path:
+    """Compress one TTF to WOFF2, keeping its outlines and hints."""
+    output = web_dir / f"{ttf_path.stem}.woff2"
+    font = TTFont(str(ttf_path))
+    font.flavor = "woff2"
+    font.save(str(output))
+    font.close()
+    return output
+
+
+def write_webfonts(ttf_paths: list[Path], web_dir: Path) -> list[Path]:
+    """Write a WOFF2 file per TTF and an @font-face CSS file per family to ``web_dir``.
+
+    TTF names follow ``<FamilyStem>-<Variant>.ttf``, and the CSS family is each font's
+    typographic family name. The fonts are compressed in parallel.
+    """
+    web_dir.mkdir(parents=True, exist_ok=True)
+    with ProcessPoolExecutor() as pool:
+        written = list(pool.map(to_woff2, ttf_paths, [web_dir] * len(ttf_paths)))
+    families: dict[str, list[FontVariant]] = {}
+    for path in ttf_paths:
+        name_table = TTFont(str(path), lazy=True)["name"]
+        family = name_table.getDebugName(16) or name_table.getDebugName(1)
+        variant = get_variants_by_names([path.stem.split("-", 1)[1]])[0]
+        families.setdefault(family, []).append(variant)
+    order = {variant: index for index, variant in enumerate(DEFAULT_VARIANTS)}
+    for family, variants in families.items():
+        written.append(write_css(web_dir, family, sorted(variants, key=order.__getitem__)))
+    logger.info("Wrote %d WOFF2 files to %s", len(ttf_paths), web_dir)
+    return written
 
 
 def load_hint_table(path: str) -> dict[str, dict[str, float]]:
@@ -497,11 +530,6 @@ class FamilyBuilder:
         font.close()
         logger.info("Wrote %s", path)
         self.built[family].append(path)
-        if self.args.webfonts:
-            web_font = TTFont(str(path))
-            web_font.flavor = "woff2"
-            web_font.save(str(self.web_dir / f"{stem}-{variant.output_suffix}.woff2"))
-            web_font.close()
 
     def build_variant(self, variant: FontVariant) -> None:
         merged = self.merge(variant)
@@ -540,13 +568,13 @@ class FamilyBuilder:
             self.save("narrow", variant, font)
             self.report.extend((variant.output_suffix, plan) for plan in plans.values())
 
-    def finish(self, variants: list[FontVariant]) -> None:
+    def finish(self) -> None:
         for family, paths in self.built.items():
             stem = family_file_stem(self.names[family])
             if self.args.ttc and len(paths) > 1:
                 write_ttc(paths, self.output_dir / f"{stem}.ttc")
-            if self.args.webfonts:
-                write_css(self.web_dir, self.names[family], variants)
+        if self.args.webfonts:
+            write_webfonts([path for paths in self.built.values() for path in paths], self.web_dir)
         if self.args.narrow_report and self.report:
             write_report(Path(self.args.narrow_report), self.report)
         if self.args.narrow_groups_dir and "narrow" in self.families:
@@ -583,8 +611,6 @@ def main(argv: list[str] | None = None) -> int:
 
     builder = FamilyBuilder(args)
     builder.ttf_dir.mkdir(parents=True, exist_ok=True)
-    if args.webfonts:
-        builder.web_dir.mkdir(parents=True, exist_ok=True)
     logger.info(
         "Building %s: %s",
         " and ".join(builder.names[family] for family in builder.families),
@@ -597,7 +623,7 @@ def main(argv: list[str] | None = None) -> int:
         except Exception:
             logger.exception("Failed to build variant %s", variant.output_suffix)
             return 1
-    builder.finish(variants)
+    builder.finish()
     logger.info(
         "All requested variants of %s built successfully",
         " and ".join(builder.names[family] for family in builder.families),

@@ -1,4 +1,4 @@
-.PHONY: dev lint format test download ensure-upstream run run-web run-minimal hints package clean
+.PHONY: dev lint format test download ensure-upstream run run-web run-minimal hints webfonts package clean
 
 dev:
 	uv sync --all-groups
@@ -49,7 +49,12 @@ hints: ensure-upstream
 VERSION = $(shell uv run python -c "import tomllib; \
 	print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
 
-package:
+webfonts:
+	rm -rf fonts/webfont
+	uv run python -c "from pathlib import Path; from hangyeol_code.cli import write_webfonts; \
+		write_webfonts(sorted(Path('fonts/ttf').glob('*.ttf')), Path('fonts/webfont'))"
+
+package: webfonts
 	rm -rf dist
 	for stem in HangyeolCode HangyeolCodeNarrow; do \
 		mkdir -p dist/$$stem-$(VERSION)/ttf && \
@@ -57,6 +62,10 @@ package:
 		cp fonts/$$stem.ttc LICENSE dist/$$stem-$(VERSION)/ && \
 		(cd dist && uv run python -m zipfile -c $$stem-$(VERSION).zip $$stem-$(VERSION)) || exit 1; \
 	done
+	mkdir -p dist/HangyeolCode-webfont-$(VERSION)
+	cp fonts/webfont/* LICENSE dist/HangyeolCode-webfont-$(VERSION)/
+	cd dist && uv run python -m zipfile -c HangyeolCode-webfont-$(VERSION).zip \
+		HangyeolCode-webfont-$(VERSION)
 
 clean:
 	rm -rf fonts build dist

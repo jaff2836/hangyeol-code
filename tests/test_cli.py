@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import pytest
+from fontTools.fontBuilder import FontBuilder
+from fontTools.pens.ttGlyphPen import TTGlyphPen
+from fontTools.ttLib import TTFont
 
 from hangyeol_code.builder import DEFAULT_VARIANTS, get_variants_by_names
 from hangyeol_code.cli import (
@@ -11,6 +14,7 @@ from hangyeol_code.cli import (
     validate_styles,
     validate_weights,
     write_css,
+    write_webfonts,
 )
 
 
@@ -103,3 +107,46 @@ def test_parser_checks_font_version() -> None:
     assert build_parser().parse_args(["--font-version", "1.001"]).font_version == "1.001"
     with pytest.raises(SystemExit):
         build_parser().parse_args(["--font-version", "1.0.1"])
+
+
+def make_tiny_font(path, family, style):
+    fb = FontBuilder(1000, isTTF=True)
+    fb.setupGlyphOrder([".notdef"])
+    fb.setupCharacterMap({})
+    fb.setupGlyf({".notdef": TTGlyphPen(None).glyph()})
+    fb.setupHorizontalMetrics({".notdef": (600, 0)})
+    fb.setupHorizontalHeader(ascent=1020, descent=-300)
+    fb.setupNameTable({"familyName": family, "styleName": style})
+    fb.setupOS2()
+    fb.setupPost()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fb.save(str(path))
+    return path
+
+
+def test_write_webfonts_compresses_each_font_and_writes_css_per_family(tmp_path) -> None:
+    paths = [
+        make_tiny_font(
+            tmp_path / "ttf" / "HangyeolCode-BoldItalic.ttf", "Hangyeol Code", "Bold Italic"
+        ),
+        make_tiny_font(tmp_path / "ttf" / "HangyeolCode-Regular.ttf", "Hangyeol Code", "Regular"),
+        make_tiny_font(
+            tmp_path / "ttf" / "HangyeolCodeNarrow-Regular.ttf", "Hangyeol Code Narrow", "Regular"
+        ),
+    ]
+    web_dir = tmp_path / "webfont"
+    written = write_webfonts(paths, web_dir)
+
+    assert sorted(path.name for path in written) == [
+        "HangyeolCode-BoldItalic.woff2",
+        "HangyeolCode-Regular.woff2",
+        "HangyeolCodeNarrow-Regular.woff2",
+        "hangyeolcode.css",
+        "hangyeolcodenarrow.css",
+    ]
+    assert TTFont(str(web_dir / "HangyeolCode-Regular.woff2")).flavor == "woff2"
+    css = (web_dir / "hangyeolcode.css").read_text(encoding="utf-8")
+    assert css.index("HangyeolCode-Regular.woff2") < css.index("HangyeolCode-BoldItalic.woff2")
+    assert "font-family: 'Hangyeol Code Narrow';" in (web_dir / "hangyeolcodenarrow.css").read_text(
+        encoding="utf-8"
+    )
