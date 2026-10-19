@@ -9,9 +9,9 @@ Pretendard, and the remaining KS X 1001 symbols from Pretendard and Noto Sans KR
 Narrow, the same font on cells 10% narrower, is built from the same sources in the same run.
 Licensed under the SIL Open Font License 1.1.
 
-![Rendering at 10–20 px](assets/sample.png)
+![Hangyeol Code at 11, 14 and 18 px](assets/sample.png)
 
-*Rendered with FreeType hinting and enlarged three times.*
+*11, 14 and 18 px rendered with FreeType hinting, enlarged five times.*
 
 [한국어](README.md)
 
@@ -48,6 +48,8 @@ Licensed under the SIL Open Font License 1.1.
 The same font with cells 10% narrower: 540 units for half-width and 1080 for full-width, with
 the same line height. About 11% more characters fit on a line of the same width. Its version
 always matches Hangyeol Code.
+
+![Hangyeol Code Narrow at 11, 14 and 18 px](assets/sample-narrow.png)
 
 - **Position:** glyphs keep their place relative to the center of their cell; only glyphs that
   lean to one side and lack margin move a little.
