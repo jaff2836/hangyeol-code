@@ -23,3 +23,7 @@ Thumbs.db
 tools/render-windows/bin/
 tools/render-windows/obj/
 renders/
+
+# Local secrets (Buildkite tokens)
+.env
+.env.*

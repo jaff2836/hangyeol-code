@@ -4,7 +4,7 @@ steps:
   - label: ":linux: Build fonts"
     key: fonts
     agents:
-      queue: linux
+      queue: jaff2836-worker-linux
     commands:
       - uv sync --all-groups --locked
       - make download
@@ -15,7 +15,7 @@ steps:
   - label: ":windows: DirectWrite renders"
     depends_on: fonts
     agents:
-      queue: windows
+      queue: jaff2836-worker-windows
     commands:
       - buildkite-agent artifact download "fonts/ttf/*.ttf" .
       - dotnet run --project tools/render-windows -c Release -- --fonts fonts/ttf --out renders --strict
