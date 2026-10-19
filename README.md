@@ -179,12 +179,15 @@ dotnet run --project tools/render-windows -c Release -- --fonts fonts/ttf --out 
 
 - 두 글꼴을 ClearType(natural symmetric), 그레이스케일, GDI classic으로 11·14·18px씩 그려
   5배 확대한 PNG와 실제 크기 PNG(`-1x`)를 `renders/`에 남깁니다. 합자는 DirectWrite가 적용합니다.
-- 한글을 grid fitting을 켜고 끈 두 상태로 그려 잉크 중심의 차이를 재고, `data/hints*.json`의 크기별
-  이동값과 비교해 `renders/hint-check.tsv`에 적습니다. `--strict`를 주면 0.04px 넘게 어긋날 때
-  실패합니다.
 - `tools/render-windows/probe/`의 시험용 폰트(`scripts/make_hint_probe.py`)는 사각형 하나를 정해진
   거리만큼(+1/8, +1/2, −1/8px) 옮깁니다. DirectWrite가 실제로 얼마나 옮기는지 모드별로
-  `renders/probe.tsv`에 적어, 한글 검사 결과가 어긋날 때 원인이 힌팅 명령인지 가립니다.
+  `renders/probe.tsv`에 적습니다. `--strict`를 주면, 명령과 반대로 움직인 크기가 있거나 natural
+  모드에서 10–20px 평균 이동이 명령의 절반 넘게 어긋날 때 실패합니다.
+- DirectWrite는 세로 경계를 natural 모드에서 약 1/4px, GDI classic에서 1px 단위로 그립니다. 그래서
+  1/8px 이동은 크기에 따라 0, 약 1/8, 1/4px(GDI classic은 0이나 1px)로 나타납니다.
+- 한글은 grid fitting을 켜고 끈 두 상태의 잉크 중심 차이를 `data/hints*.json`의 크기별 이동값과 함께
+  `renders/hint-check.tsv`에 적습니다. 가는 획은 이 양자화로 두께도 바뀌어 중심이 더 크게 움직이므로,
+  이 표는 참고용이고 합격 여부는 시험용 폰트로 정합니다.
 - `renders/info.json`에 Windows·DirectWrite 버전과 렌더링 설정을 적습니다. DirectWrite는 Windows
   빌드마다 결과가 조금씩 다르므로 이미지를 비교할 때 함께 봅니다.
 - `.buildkite/pipeline.yml`은 Linux 에이전트에서 폰트를 빌드하고 Windows 에이전트에서 이 도구를

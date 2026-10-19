@@ -33,7 +33,7 @@ internal static class Program
           --sizes LIST      pixel sizes of the sample sheets (default: 11,14,18)
           --zoom N          enlargement of the zoomed sheets (default: 5)
           --no-hint-check   only render the sample sheets (no Hangul check, no probe)
-          --strict          exit 1 when a measured Hangul shift misses its table value
+          --strict          exit 1 when a probe font moves against its instruction or too little
         """;
 
     private const string SampleText = "if (상태 == \"완료\") { return [결과]; }\n// ※ 한글 주석 ★ ① ㈜ ½ →  ";
@@ -99,8 +99,9 @@ internal static class Program
         int status = 0;
         if (!flags.Contains("--no-hint-check"))
         {
-            HintProbe.Run(options["--probe"], outDir);
-            status = HintCheck.Run(renderer, families, options["--hints"], outDir, flags.Contains("--strict"));
+            int failures = HintProbe.Run(options["--probe"], outDir);
+            HintCheck.Run(renderer, families, options["--hints"], outDir);
+            status = flags.Contains("--strict") && failures > 0 ? 1 : 0;
         }
         WriteInfo(Path.Combine(outDir, "info.json"), renderer, sizes, zoom, written);
         return status;

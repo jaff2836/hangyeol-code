@@ -188,12 +188,17 @@ dotnet run --project tools/render-windows -c Release -- --fonts fonts/ttf --out 
 - Both families are drawn in ClearType (natural symmetric), grayscale and GDI classic at 11, 14
   and 18 px, as PNGs enlarged five times and at actual size (`-1x`) in `renders/`. DirectWrite
   applies the ligatures.
-- Hangul is drawn with grid fitting on and off; the difference of the ink centroids is compared
-  with the per-size shifts in `data/hints*.json` and written to `renders/hint-check.tsv`. With
-  `--strict` the tool fails when a size is off by more than 0.04 px.
 - The probe fonts in `tools/render-windows/probe/` (`scripts/make_hint_probe.py`) move one
   rectangle by known amounts (+1/8, +1/2, −1/8 px). How far DirectWrite really moves them, per
-  mode, goes to `renders/probe.tsv`, to tell whether a Hangul mismatch comes from the hint program.
+  mode, goes to `renders/probe.tsv`. With `--strict` the tool fails when any size moves against
+  the instruction, or when the 10–20 px mean in a natural mode is off by more than half of it.
+- DirectWrite draws vertical edges in steps of about 1/4 px in the natural modes and whole pixels
+  in GDI classic, so a 1/8 px shift shows up as 0, about 1/8 or 1/4 px depending on the size (0
+  or 1 px in GDI classic).
+- For Hangul, the difference of the ink centroids with grid fitting on and off is written next to
+  the per-size shifts of `data/hints*.json` in `renders/hint-check.tsv`. The quantization also
+  changes the thickness of thin strokes, which moves the centroid further, so this table is for
+  reference; the probe fonts decide pass or fail.
 - `renders/info.json` records the Windows and DirectWrite versions and the rendering parameters.
   DirectWrite output changes slightly between Windows builds, so keep it next to the images.
 - `.buildkite/pipeline.yml` is an example that builds the fonts on a Linux agent and runs the tool

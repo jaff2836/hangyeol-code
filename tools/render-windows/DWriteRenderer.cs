@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using SharpGen.Runtime;
 using Vortice.DCommon;
 using Vortice.DirectWrite;
@@ -95,7 +96,32 @@ internal sealed class DWriteRenderer : IDisposable
             mode.ClearType ? 1f : 0f, PixelGeometry.Rgb, mode.Mode, gridFit);
         using var renderer = new GlyphRunRenderer(target, parameters, snapBaseline);
         layout.Draw(IntPtr.Zero, renderer, Padding, Padding);
-        return Gdi.Read(dc);
+        return ReadPixels(target);
+    }
+
+    /// <summary>The render target's pixels, top row first.</summary>
+    private static RgbImage ReadPixels(IDWriteBitmapRenderTarget target)
+    {
+        using IDWriteBitmapRenderTarget2? target2 = target.QueryInterfaceOrNull<IDWriteBitmapRenderTarget2>();
+        if (target2 is null)
+        {
+            return Gdi.Read(target.MemoryDC); // before IDWriteBitmapRenderTarget2 (Windows 11)
+        }
+        BitmapDataBgra32 data = target2.BitmapData;
+        int width = (int)data.Width;
+        int height = (int)data.Height;
+        var row = new int[width];
+        var image = new RgbImage(width, height);
+        for (int y = 0; y < height; y++)
+        {
+            Marshal.Copy((IntPtr)data.Pixels + y * width * 4, row, 0, width);
+            for (int x = 0; x < width; x++)
+            {
+                int bgra = row[x];
+                image.Set(x, y, (byte)(bgra >> 16), (byte)(bgra >> 8), (byte)bgra);
+            }
+        }
+        return image;
     }
 
     public void Dispose()

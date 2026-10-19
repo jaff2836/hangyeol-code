@@ -11,7 +11,11 @@ namespace HangyeolCode.RenderWindows;
 ///
 /// Each probe is compared with the None probe rendered the same way (works in every mode),
 /// and with itself with grid fitting off (natural modes only). Coverage is linear and the
-/// baseline on a whole pixel, so the centroid moves exactly as far as the outline does.
+/// baseline on a whole pixel. DirectWrite still quantizes vertical edges (about 1/4 px in the
+/// natural modes, whole pixels in GDI classic), so a 1/8 px shift shows up as 0, about 1/8 or
+/// 1/4 px depending on the size. A probe passes when no size moves against the instruction,
+/// the None probe never moves, and in the natural modes the mean over 10-20 ppem is within
+/// half of the instructed shift.
 /// </summary>
 internal static class HintProbe
 {
@@ -26,12 +30,15 @@ internal static class HintProbe
 
     private const string Text = "AAAAAAAA";
 
-    public static void Run(string probeDir, string outDir)
+    private const double Still = 0.02; // px; smaller moves count as none
+
+    /// <summary>Render the probes, write probe.tsv and return the number of failed probe/mode pairs.</summary>
+    public static int Run(string probeDir, string outDir)
     {
         if (!Directory.Exists(probeDir))
         {
             Console.WriteLine($"probe: {probeDir} not found, skipping");
-            return;
+            return 0;
         }
         using var renderer = new DWriteRenderer(probeDir);
         var report = new StringBuilder("probe\tmode\tppem\texpected_px\tvs_none_px\tvs_unhinted_px\theight_px\theight_unhinted_px\n");
@@ -61,17 +68,25 @@ internal static class HintProbe
                     {
                         summary[key] = values = [];
                     }
-                    values.Add(vsNone - expected);
+                    values.Add(vsNone);
                 }
             }
         }
         File.WriteAllText(Path.Combine(outDir, "probe.tsv"), report.ToString());
-        Console.WriteLine("probe: measured minus expected shift against the None probe, 10-20 ppem (probe.tsv)");
-        foreach (((string name, string mode), List<double> errors) in summary)
+        Console.WriteLine("probe: shift against the None probe at 10-20 ppem, px (probe.tsv)");
+        int failures = 0;
+        foreach (((string name, string mode), List<double> measured) in summary)
         {
+            double expected = Probes.First(p => p.Name == name).Expected;
+            bool ok = expected == 0
+                ? measured.All(m => Math.Abs(m) <= Still)
+                : measured.All(m => m * Math.Sign(expected) >= -Still)
+                    && (mode == RenderMode.GdiClassic.Name || Math.Abs(measured.Average() - expected) <= Math.Abs(expected) / 2);
+            failures += ok ? 0 : 1;
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                $"  {name,-8} {mode,-12} mean {errors.Average():+0.000;-0.000;0.000} px, worst {errors.MaxBy(Math.Abs):+0.000;-0.000;0.000} px"));
+                $"  {name,-8} {mode,-12} expected {expected:+0.000;-0.000;0.000}  mean {measured.Average():+0.000;-0.000;0.000}  min {measured.Min():+0.000;-0.000;0.000}  max {measured.Max():+0.000;-0.000;0.000}  {(ok ? "ok" : "FAIL")}"));
         }
+        return failures;
     }
 
     private static RgbImage Render(DWriteRenderer renderer, string probe, int ppem, RenderMode mode, GridFitMode gridFit) =>

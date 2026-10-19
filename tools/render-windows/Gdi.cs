@@ -66,6 +66,8 @@ internal static class Gdi
     }
 
     /// <summary>Copy the 32-bit DIB selected into <paramref name="hdc"/> into an RGB image.</summary>
+    /// <remarks>DirectWrite's render target DIB is top-down, but GetObject reports a positive
+    /// height for it (seen on Windows 11 24H2), so rows are read in memory order.</remarks>
     public static RgbImage Read(IntPtr hdc)
     {
         IntPtr bitmap = GetCurrentObject(hdc, ObjBitmap);
@@ -75,13 +77,11 @@ internal static class Gdi
         }
         int width = dib.Bm.Width;
         int height = Math.Abs(dib.Bm.Height);
-        bool topDown = dib.Bmih.Height < 0;
         var row = new byte[dib.Bm.WidthBytes];
         var image = new RgbImage(width, height);
         for (int y = 0; y < height; y++)
         {
-            int sourceRow = topDown ? y : height - 1 - y;
-            Marshal.Copy(dib.Bm.Bits + sourceRow * dib.Bm.WidthBytes, row, 0, row.Length);
+            Marshal.Copy(dib.Bm.Bits + y * dib.Bm.WidthBytes, row, 0, row.Length);
             for (int x = 0; x < width; x++)
             {
                 // BGRA in memory.
