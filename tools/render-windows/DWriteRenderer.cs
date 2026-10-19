@@ -66,8 +66,11 @@ internal sealed class DWriteRenderer : IDisposable
     }
 
     /// <summary>Render <paramref name="text"/> (lines separated by \n) black on white.</summary>
+    /// <param name="linear">Gamma 1 and no contrast enhancement, so pixel values are proportional
+    /// to covered area; used for measuring, not for looking at.</param>
+    /// <param name="snapBaseline">Put every line's baseline on a whole pixel.</param>
     public RgbImage Render(string text, string family, FontWeight weight, float sizePx, RenderMode mode,
-        GridFitMode gridFit = GridFitMode.Default)
+        GridFitMode gridFit = GridFitMode.Default, bool linear = false, bool snapBaseline = false)
     {
         using IDWriteTextFormat format = _factory.CreateTextFormat(
             family, _collection, weight, FontStyle.Normal, FontStretch.Normal, sizePx, "ko-kr");
@@ -88,9 +91,9 @@ internal sealed class DWriteRenderer : IDisposable
         Gdi.FillWhite(dc, width, height);
 
         using IDWriteRenderingParams3 parameters = _factory.CreateCustomRenderingParams(
-            Gamma, EnhancedContrast, GrayscaleEnhancedContrast, mode.ClearType ? 1f : 0f,
-            PixelGeometry.Rgb, mode.Mode, gridFit);
-        using var renderer = new GlyphRunRenderer(target, parameters);
+            linear ? 1f : Gamma, linear ? 0f : EnhancedContrast, linear ? 0f : GrayscaleEnhancedContrast,
+            mode.ClearType ? 1f : 0f, PixelGeometry.Rgb, mode.Mode, gridFit);
+        using var renderer = new GlyphRunRenderer(target, parameters, snapBaseline);
         layout.Draw(IntPtr.Zero, renderer, Padding, Padding);
         return Gdi.Read(dc);
     }
@@ -103,14 +106,15 @@ internal sealed class DWriteRenderer : IDisposable
     }
 
     /// <summary>Draws each glyph run the layout produces onto the bitmap render target.</summary>
-    private sealed class GlyphRunRenderer(IDWriteBitmapRenderTarget target, IDWriteRenderingParams parameters)
-        : TextRendererBase
+    private sealed class GlyphRunRenderer(IDWriteBitmapRenderTarget target, IDWriteRenderingParams parameters,
+        bool snapBaseline) : TextRendererBase
     {
         public override void DrawGlyphRun(IntPtr clientDrawingContext, float baselineOriginX, float baselineOriginY,
             MeasuringMode measuringMode, GlyphRun glyphRun, GlyphRunDescription glyphRunDescription,
             IUnknown? clientDrawingEffect)
         {
-            target.DrawGlyphRun(baselineOriginX, baselineOriginY, measuringMode, glyphRun, parameters, 0x000000);
+            float y = snapBaseline ? MathF.Round(baselineOriginY) : baselineOriginY;
+            target.DrawGlyphRun(baselineOriginX, y, measuringMode, glyphRun, parameters, 0x000000);
         }
     }
 }

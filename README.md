@@ -182,6 +182,9 @@ dotnet run --project tools/render-windows -c Release -- --fonts fonts/ttf --out 
 - 한글을 grid fitting을 켜고 끈 두 상태로 그려 잉크 중심의 차이를 재고, `data/hints*.json`의 크기별
   이동값과 비교해 `renders/hint-check.tsv`에 적습니다. `--strict`를 주면 0.04px 넘게 어긋날 때
   실패합니다.
+- `tools/render-windows/probe/`의 시험용 폰트(`scripts/make_hint_probe.py`)는 사각형 하나를 정해진
+  거리만큼(+1/8, +1/2, −1/8px) 옮깁니다. DirectWrite가 실제로 얼마나 옮기는지 모드별로
+  `renders/probe.tsv`에 적어, 한글 검사 결과가 어긋날 때 원인이 힌팅 명령인지 가립니다.
 - `renders/info.json`에 Windows·DirectWrite 버전과 렌더링 설정을 적습니다. DirectWrite는 Windows
   빌드마다 결과가 조금씩 다르므로 이미지를 비교할 때 함께 봅니다.
 - `.buildkite/pipeline.yml`은 Linux 에이전트에서 폰트를 빌드하고 Windows 에이전트에서 이 도구를

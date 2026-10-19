@@ -23,15 +23,16 @@ internal sealed record Family(string Name, string Stem, string HintTable)
 internal static class Program
 {
     private const string Usage = """
-        Usage: render-windows [--fonts DIR] [--out DIR] [--hints DIR] [--sizes 11,14,18] [--zoom 5]
-                              [--no-hint-check] [--strict]
+        Usage: render-windows [--fonts DIR] [--out DIR] [--hints DIR] [--probe DIR] [--sizes 11,14,18]
+                              [--zoom 5] [--no-hint-check] [--strict]
 
           --fonts DIR       TTF files to load without installing them (default: fonts/ttf)
           --out DIR         where PNGs, hint-check.tsv and info.json go (default: renders)
           --hints DIR       folder with hints.json and hints-narrow.json (default: data)
+          --probe DIR       probe fonts from scripts/make_hint_probe.py (default: tools/render-windows/probe)
           --sizes LIST      pixel sizes of the sample sheets (default: 11,14,18)
           --zoom N          enlargement of the zoomed sheets (default: 5)
-          --no-hint-check   only render the sample sheets
+          --no-hint-check   only render the sample sheets (no Hangul check, no probe)
           --strict          exit 1 when a measured Hangul shift misses its table value
         """;
 
@@ -46,6 +47,7 @@ internal static class Program
             ["--fonts"] = "fonts/ttf",
             ["--out"] = "renders",
             ["--hints"] = "data",
+            ["--probe"] = "tools/render-windows/probe",
             ["--sizes"] = "11,14,18",
             ["--zoom"] = "5",
         };
@@ -94,9 +96,12 @@ internal static class Program
         }
         Console.WriteLine($"Wrote {written.Count} sample sheets to {outDir}");
 
-        int status = flags.Contains("--no-hint-check")
-            ? 0
-            : HintCheck.Run(renderer, families, options["--hints"], outDir, flags.Contains("--strict"));
+        int status = 0;
+        if (!flags.Contains("--no-hint-check"))
+        {
+            HintProbe.Run(options["--probe"], outDir);
+            status = HintCheck.Run(renderer, families, options["--hints"], outDir, flags.Contains("--strict"));
+        }
         WriteInfo(Path.Combine(outDir, "info.json"), renderer, sizes, zoom, written);
         return status;
     }

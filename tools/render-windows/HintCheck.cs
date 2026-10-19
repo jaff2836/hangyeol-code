@@ -10,7 +10,8 @@ namespace HangyeolCode.RenderWindows;
 ///
 /// The Hangul glyphs carry only the shift program, so rendering them with grid fitting on
 /// and off differs by exactly that shift. The check compares the ink centroid of about 300
-/// syllables in both renders (grayscale, natural symmetric) at each size and weight.
+/// syllables in both renders (grayscale, natural symmetric, linear coverage, baselines on
+/// whole pixels) at each size and weight.
 /// </summary>
 internal static class HintCheck
 {
@@ -58,8 +59,10 @@ internal static class HintCheck
                 foreach ((string ppemText, double expected) in shifts.OrderBy(kv => int.Parse(kv.Key, CultureInfo.InvariantCulture)))
                 {
                     int ppem = int.Parse(ppemText, CultureInfo.InvariantCulture);
-                    RgbImage hinted = renderer.Render(Syllables, family.Name, weight, ppem, RenderMode.Grayscale, GridFitMode.Enabled);
-                    RgbImage plain = renderer.Render(Syllables, family.Name, weight, ppem, RenderMode.Grayscale, GridFitMode.Disabled);
+                    RgbImage hinted = renderer.Render(Syllables, family.Name, weight, ppem, RenderMode.Grayscale,
+                        GridFitMode.Enabled, linear: true, snapBaseline: true);
+                    RgbImage plain = renderer.Render(Syllables, family.Name, weight, ppem, RenderMode.Grayscale,
+                        GridFitMode.Disabled, linear: true, snapBaseline: true);
                     double measured = Centroid(plain) - Centroid(hinted); // positive: hinting moved Hangul up
                     bool ok = Math.Abs(measured - expected) <= Tolerance;
                     checkedCount++;
@@ -75,7 +78,7 @@ internal static class HintCheck
     }
 
     /// <summary>Coverage-weighted mean row of the ink, in pixels from the top.</summary>
-    private static double Centroid(RgbImage image)
+    public static double Centroid(RgbImage image)
     {
         double weighted = 0;
         double total = 0;

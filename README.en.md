@@ -191,6 +191,9 @@ dotnet run --project tools/render-windows -c Release -- --fonts fonts/ttf --out 
 - Hangul is drawn with grid fitting on and off; the difference of the ink centroids is compared
   with the per-size shifts in `data/hints*.json` and written to `renders/hint-check.tsv`. With
   `--strict` the tool fails when a size is off by more than 0.04 px.
+- The probe fonts in `tools/render-windows/probe/` (`scripts/make_hint_probe.py`) move one
+  rectangle by known amounts (+1/8, +1/2, −1/8 px). How far DirectWrite really moves them, per
+  mode, goes to `renders/probe.tsv`, to tell whether a Hangul mismatch comes from the hint program.
 - `renders/info.json` records the Windows and DirectWrite versions and the rendering parameters.
   DirectWrite output changes slightly between Windows builds, so keep it next to the images.
 - `.buildkite/pipeline.yml` is an example that builds the fonts on a Linux agent and runs the tool
