@@ -1,0 +1,48 @@
+[project]
+name = "hangyeol-code"
+version = "1.001"
+description = "Build Hangyeol Code and Hangyeol Code Narrow, Korean coding fonts from JetBrains Mono (Nerd Fonts), Pretendard and Noto Sans KR."
+readme = "README.md"
+authors = [
+    { name = "Sangwon Chae" },
+]
+requires-python = ">=3.12"
+dependencies = [
+    "brotli>=1.2.0",
+    "fonttools>=4.63.0",
+]
+license = "OFL-1.1"
+license-files = ["LICENSE"]
+
+[project.urls]
+Homepage = "https://github.com/jaff2836/hangyeol-code"
+Issues = "https://github.com/jaff2836/hangyeol-code/issues"
+
+[project.scripts]
+hangyeol-code = "hangyeol_code:main"
+
+[build-system]
+requires = ["uv_build>=0.11.19,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+hints = [
+    "freetype-py>=2.5.1",
+    "numpy>=2.0",
+]
+lint = [
+    "ruff>=0.15.16",
+]
+test = [
+    "pytest>=9.0.3",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.pytest]
+addopts = ["--tb=short"]
