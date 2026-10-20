@@ -192,6 +192,8 @@ dotnet run --project tools/render-windows -c Release -- --fonts fonts/ttf --out 
   rectangle by known amounts (+1/8, +1/2, −1/8 px). How far DirectWrite really moves them, per
   mode, goes to `renders/probe.tsv`. With `--strict` the tool fails when any size moves against
   the instruction, or when the 10–20 px mean in a natural mode is off by more than half of it.
+  It also fails when the uninstructed probe moves between grid fitting on and off, or when the
+  probe folder or a probe font is missing.
 - DirectWrite draws vertical edges in steps of about 1/4 px in the natural modes and whole pixels
   in GDI classic, so a 1/8 px shift shows up as 0, about 1/8 or 1/4 px depending on the size (0
   or 1 px in GDI classic).

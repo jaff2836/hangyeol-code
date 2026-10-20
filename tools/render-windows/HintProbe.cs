@@ -13,9 +13,11 @@ namespace HangyeolCode.RenderWindows;
 /// and with itself with grid fitting off (natural modes only). Coverage is linear and the
 /// baseline on a whole pixel. DirectWrite still quantizes vertical edges (about 1/4 px in the
 /// natural modes, whole pixels in GDI classic), so a 1/8 px shift shows up as 0, about 1/8 or
-/// 1/4 px depending on the size. A probe passes when no size moves against the instruction,
-/// the None probe never moves, and in the natural modes the mean over 10-20 ppem is within
-/// half of the instructed shift.
+/// 1/4 px depending on the size. A probe passes when no size moves against the instruction
+/// and, in the natural modes, the mean over 10-20 ppem is within half of the instructed shift.
+/// The None probe is the reference itself, so it is checked against its own render with grid
+/// fitting off: it passes when that never moves it; GDI classic has no such reference and
+/// reports it as n/a. A missing probe folder or probe font counts as a failure.
 /// </summary>
 internal static class HintProbe
 {
@@ -37,12 +39,19 @@ internal static class HintProbe
     {
         if (!Directory.Exists(probeDir))
         {
-            Console.WriteLine($"probe: {probeDir} not found, skipping");
-            return 0;
+            Console.WriteLine($"probe: {probeDir} not found (run scripts/make_hint_probe.py); nothing was checked");
+            return 1;
         }
         using var renderer = new DWriteRenderer(probeDir);
+        string[] missing = Probes.Select(p => p.Name).Where(name => !renderer.Has(Family(name), FontWeight.Normal)).ToArray();
+        if (missing.Length > 0)
+        {
+            Console.WriteLine($"probe: {probeDir} lacks {string.Join(", ", missing.Select(Family))}; nothing was checked");
+            return missing.Length;
+        }
         var report = new StringBuilder("probe\tmode\tppem\texpected_px\tvs_none_px\tvs_unhinted_px\theight_px\theight_unhinted_px\n");
-        var summary = new Dictionary<(string, string), List<double>>();
+        var vsNoneByKey = new Dictionary<(string, string), List<double>>();
+        var vsPlainByKey = new Dictionary<(string, string), List<double>>();
         foreach (RenderMode mode in RenderMode.All)
         {
             for (int ppem = 10; ppem <= 20; ppem++)
@@ -53,31 +62,35 @@ internal static class HintProbe
                 {
                     RgbImage hinted = Render(renderer, name, ppem, mode, GridFitMode.Enabled);
                     double vsNone = noneCentroid - HintCheck.Centroid(hinted);
-                    string vsPlain = "";
+                    string vsPlainText = "";
                     string plainHeight = "";
+                    var key = (name, mode.Name);
                     if (!mode.GdiCompatible)
                     {
                         RgbImage plain = Render(renderer, name, ppem, mode, GridFitMode.Disabled);
-                        vsPlain = (HintCheck.Centroid(plain) - HintCheck.Centroid(hinted)).ToString("+0.000;-0.000;0.000", CultureInfo.InvariantCulture);
+                        double vsPlain = HintCheck.Centroid(plain) - HintCheck.Centroid(hinted);
+                        Add(vsPlainByKey, key, vsPlain);
+                        vsPlainText = vsPlain.ToString("+0.000;-0.000;0.000", CultureInfo.InvariantCulture);
                         plainHeight = InkHeight(plain).ToString("0.000", CultureInfo.InvariantCulture);
                     }
                     report.Append(CultureInfo.InvariantCulture,
-                        $"{name}\t{mode.Name}\t{ppem}\t{expected:+0.000;-0.000;0.000}\t{vsNone:+0.000;-0.000;0.000}\t{vsPlain}\t{InkHeight(hinted):0.000}\t{plainHeight}\n");
-                    var key = (name, mode.Name);
-                    if (!summary.TryGetValue(key, out var values))
-                    {
-                        summary[key] = values = [];
-                    }
-                    values.Add(vsNone);
+                        $"{name}\t{mode.Name}\t{ppem}\t{expected:+0.000;-0.000;0.000}\t{vsNone:+0.000;-0.000;0.000}\t{vsPlainText}\t{InkHeight(hinted):0.000}\t{plainHeight}\n");
+                    Add(vsNoneByKey, key, vsNone);
                 }
             }
         }
         File.WriteAllText(Path.Combine(outDir, "probe.tsv"), report.ToString());
-        Console.WriteLine("probe: shift against the None probe at 10-20 ppem, px (probe.tsv)");
+        Console.WriteLine("probe: shift at 10-20 ppem, px; against the None probe, None against itself unhinted (probe.tsv)");
         int failures = 0;
-        foreach (((string name, string mode), List<double> measured) in summary)
+        foreach (((string name, string mode), List<double> vsNone) in vsNoneByKey)
         {
             double expected = Probes.First(p => p.Name == name).Expected;
+            List<double>? measured = expected == 0 ? vsPlainByKey.GetValueOrDefault((name, mode)) : vsNone;
+            if (measured is null)
+            {
+                Console.WriteLine($"  {name,-8} {mode,-12} n/a (no reference independent of the None probe)");
+                continue;
+            }
             bool ok = expected == 0
                 ? measured.All(m => Math.Abs(m) <= Still)
                 : measured.All(m => m * Math.Sign(expected) >= -Still)
@@ -89,8 +102,19 @@ internal static class HintProbe
         return failures;
     }
 
+    private static string Family(string probe) => $"Hangyeol Probe {probe}";
+
+    private static void Add(Dictionary<(string, string), List<double>> values, (string, string) key, double value)
+    {
+        if (!values.TryGetValue(key, out var list))
+        {
+            values[key] = list = [];
+        }
+        list.Add(value);
+    }
+
     private static RgbImage Render(DWriteRenderer renderer, string probe, int ppem, RenderMode mode, GridFitMode gridFit) =>
-        renderer.Render(Text, $"Hangyeol Probe {probe}", FontWeight.Normal, ppem, mode, gridFit, linear: true, snapBaseline: true);
+        renderer.Render(Text, Family(probe), FontWeight.Normal, ppem, mode, gridFit, linear: true, snapBaseline: true);
 
     /// <summary>Total coverage divided by the widest row's coverage: the rectangle's height in pixels.</summary>
     private static double InkHeight(RgbImage image)

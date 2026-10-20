@@ -182,7 +182,8 @@ dotnet run --project tools/render-windows -c Release -- --fonts fonts/ttf --out 
 - `tools/render-windows/probe/`의 시험용 폰트(`scripts/make_hint_probe.py`)는 사각형 하나를 정해진
   거리만큼(+1/8, +1/2, −1/8px) 옮깁니다. DirectWrite가 실제로 얼마나 옮기는지 모드별로
   `renders/probe.tsv`에 적습니다. `--strict`를 주면, 명령과 반대로 움직인 크기가 있거나 natural
-  모드에서 10–20px 평균 이동이 명령의 절반 넘게 어긋날 때 실패합니다.
+  모드에서 10–20px 평균 이동이 명령의 절반 넘게 어긋날 때 실패합니다. 명령이 없는 폰트가 힌팅을
+  켜고 끌 때 움직이거나, 시험용 폰트 폴더나 폰트가 없을 때도 실패합니다.
 - DirectWrite는 세로 경계를 natural 모드에서 약 1/4px, GDI classic에서 1px 단위로 그립니다. 그래서
   1/8px 이동은 크기에 따라 0, 약 1/8, 1/4px(GDI classic은 0이나 1px)로 나타납니다.
 - 한글은 grid fitting을 켜고 끈 두 상태의 잉크 중심 차이를 `data/hints*.json`의 크기별 이동값과 함께
