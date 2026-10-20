@@ -1,0 +1,25 @@
+# Renders Hangyeol Code with DirectWrite (ClearType, grayscale, GDI classic) on a Windows agent.
+# Set the agent queues to your own; the Windows agent needs the .NET 8 SDK or later.
+steps:
+  - label: ":linux: Build fonts"
+    key: fonts
+    agents:
+      queue: jaff2836-worker-linux
+    commands:
+      - uv sync --all-groups --locked
+      - make download
+      - make run
+    artifact_paths:
+      - fonts/ttf/*.ttf
+
+  - label: ":windows: DirectWrite renders"
+    depends_on: fonts
+    agents:
+      queue: jaff2836-worker-windows
+    commands:
+      - buildkite-agent artifact download "fonts/ttf/*.ttf" .
+      - dotnet run --project tools/render-windows -c Release -- --fonts fonts/ttf --out renders --strict
+    artifact_paths:
+      - renders/*
+    # The hint check has not run on a Windows agent yet; drop this once it passes there.
+    soft_fail: true

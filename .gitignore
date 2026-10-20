@@ -18,3 +18,12 @@ data/*.report.json
 # OS files
 .DS_Store
 Thumbs.db
+
+# Windows rendering tool
+tools/render-windows/bin/
+tools/render-windows/obj/
+renders/
+
+# Local secrets (Buildkite tokens)
+.env
+.env.*
