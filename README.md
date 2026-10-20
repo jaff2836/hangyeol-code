@@ -8,9 +8,10 @@
 KS X 1001 특수문자는 Pretendard와 Noto Sans KR에서 가져왔습니다. 칸 너비를 10% 줄인
 Hangyeol Code Narrow도 같은 소스에서 함께 만듭니다. SIL Open Font License 1.1로 배포합니다.
 
-![Hangyeol Code 11·14·18px 렌더링 예시](assets/sample.png)
+![Hangyeol Code 10·14·18px 렌더링 예시](assets/sample.png)
 
-*11·14·18px을 FreeType으로 힌팅을 적용해 렌더링하고 5배 확대한 이미지입니다.*
+*10·14·18px을 FreeType으로 힌팅을 적용해 렌더링하고 2배 확대한 이미지입니다. 합자는 HarfBuzz로
+적용했습니다. 괄호 안은 화면 배율 100%일 때의 pt입니다.*
 
 [English](README.en.md)
 
@@ -45,7 +46,9 @@ Hangyeol Code Narrow도 같은 소스에서 함께 만듭니다. SIL Open Font L
 칸 너비를 10% 줄인 판입니다. 반각은 540, 전각은 1080 단위이고 줄 높이는 같습니다. 같은
 너비의 창에 한 줄로 약 11% 더 많은 글자가 들어갑니다. 버전은 Hangyeol Code와 함께 갑니다.
 
-![Hangyeol Code Narrow 11·14·18px 렌더링 예시](assets/sample-narrow.png)
+![Hangyeol Code와 Hangyeol Code Narrow의 10·14·18px 비교](assets/sample-narrow.png)
+
+*크기마다 위가 Hangyeol Code, 아래가 Narrow입니다. 렌더링 방식은 맨 위 이미지와 같습니다.*
 
 - **위치:** 글자는 칸 가운데를 기준으로 제자리를 지킵니다. 한쪽으로 치우쳐 여백이 모자란
   글자만 옆으로 조금 옮깁니다.
